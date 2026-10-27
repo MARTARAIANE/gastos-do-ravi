@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gastos do Ravi 👶🏻💰 - Finanças Familiares</title>
+
+    <!-- PWA Settings & Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0284c7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Gastos Ravi">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2991/2991231.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ravi: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            400: '#38bdf8',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                        },
+                        mint: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+            .card-shadow { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+        }
+        [x-cloak] { display: none !important; }
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen pb-12" x-data="appData()" x-init="initApp()">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 no-print">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-ravi-400 to-mint-500 flex items-center justify-center text-white shadow-md text-xl font-bold">
+                        👶🏻
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-extrabold bg-gradient-to-r from-ravi-600 to-mint-700 bg-clip-text text-transparent">
+                            Gastos do Ravi
+                        </h1>
+                        <p class="text-xs text-slate-500 font-medium hidden sm:block">Controle Financeiro da Família & Bebê</p>
+                    </div>
+                </div>
+
+                <!-- Action Controls Top -->
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <button @click="openModal()" class="bg-ravi-500 hover:bg-ravi-600 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition duration-200 shadow-sm flex items-center space-x-1 sm:space-x-2">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Novo Gasto</span>
+                    </button>
+
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="p-2 sm:p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition">
+                            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+                        </button>
+                        <div x-show="open" @click.outside="open = false" x-cloak class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50 text-sm text-slate-700">
+                            <button @click="exportCSV(); open=false" class="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center space-x-2">
+                                <i data-lucide="download" class="w-4 h-4 text-slate-500"></i>
+                                <span>Exportar CSV</span>
+                            </button>
+                            <button @click="window.print(); open=false" class="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center space-x-2">
+                                <i data-lucide="printer" class="w-4 h-4 text-slate-500"></i>
+                                <span>Imprimir / PDF</span>
+                            </button>
+                            <hr class="my-1 border-slate-100">
+                            <button @click="resetData(); open=false" class="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 flex items-center space-x-2">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                <span>Restaurar Padrões</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Header for Print mode -->
+    <div class="hidden print-only p-6 border-b border-slate-300">
+        <h1 class="text-2xl font-bold text-slate-900">Relatório de Gastos - Gastos do Ravi 👶🏻💰</h1>
+        <p class="text-sm text-slate-600">Gerado em <span x-text="new Date().toLocaleDateString('pt-BR')"></span></p>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+
+        <!-- Filters & Period Bar -->
+        <section class="bg-white rounded-2xl p-4 card-shadow flex flex-wrap gap-4 items-center justify-between no-print">
+            <!-- Month Selector -->
+            <div class="flex items-center space-x-2">
+                <i data-lucide="calendar" class="w-5 h-5 text-ravi-500"></i>
+                <label for="monthFilter" class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mês de Referência:</label>
+                <input type="month" id="monthFilter" x-model="selectedMonth" @change="updateDashboard()" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-ravi-400">
+            </div>
+
+            <!-- Profile Filter Tabs -->
+            <div class="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+                <button @click="profileFilter = 'ALL'; updateDashboard()" :class="profileFilter === 'ALL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition">
+                    Todos
+                </button>
+                <button @click="profileFilter = 'RAVI'; updateDashboard()" :class="profileFilter === 'RAVI' ? 'bg-ravi-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1">
+                    <span>👶🏻 Ravi</span>
+                </button>
+                <button @click="profileFilter = 'FAMILY'; updateDashboard()" :class="profileFilter === 'FAMILY' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1">
+                    <span>🏠 Família</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- KPI Metrics Grid -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Card Total Expenses -->
+            <div class="bg-white rounded-2xl p-5 card-shadow border-l-4 border-slate-700">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Gastos (Mês)</span>
+                    <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+                        <i data-lucide="receipt" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-slate-800" x-text="formatCurrency(metrics.totalExpenses)">R$ 0,00</span>
+                </div>
+                <p class="mt-1 text-xs text-slate-500">Consolidado do mês selecionado</p>
+            </div>
+
+            <!-- Card Ravi Expenses -->
+            <div class="bg-gradient-to-br from-ravi-50 to-white rounded-2xl p-5 card-shadow border-l-4 border-ravi-400">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-ravi-600 uppercase tracking-wider">Gastos Exclusivos Ravi 👶🏻</span>
+                    <div class="w-8 h-8 rounded-lg bg-ravi-100 flex items-center justify-center text-ravi-600">
+                        <i data-lucide="baby" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-ravi-600" x-text="formatCurrency(metrics.raviExpenses)">R$ 0,00</span>
+                </div>
+                <div class="mt-1 flex items-center justify-between text-xs text-slate-500">
+                    <span>Repres. do Total:</span>
+                    <span class="font-bold text-ravi-600" x-text="metrics.totalExpenses > 0 ? ((metrics.raviExpenses / metrics.totalExpenses)*100).toFixed(1) + '%' : '0%'"></span>
+                </div>
+            </div>
+
+            <!-- Card Family Expenses -->
+            <div class="bg-gradient-to-br from-mint-50 to-white rounded-2xl p-5 card-shadow border-l-4 border-mint-500">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-mint-700 uppercase tracking-wider">Gastos da Família 🏠</span>
+                    <div class="w-8 h-8 rounded-lg bg-mint-100 flex items-center justify-center text-mint-700">
+                        <i data-lucide="home" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-mint-700" x-text="formatCurrency(metrics.familyExpenses)">R$ 0,00</span>
+                </div>
+                <div class="mt-1 flex items-center justify-between text-xs text-slate-500">
+                    <span>Repres. do Total:</span>
+                    <span class="font-bold text-mint-700" x-text="metrics.totalExpenses > 0 ? ((metrics.familyExpenses / metrics.totalExpenses)*100).toFixed(1) + '%' : '0%'"></span>
+                </div>
+            </div>
+
+            <!-- Card Budget Balance -->
+            <div class="bg-white rounded-2xl p-5 card-shadow border-l-4" :class="metrics.balance >= 0 ? 'border-emerald-500' : 'border-rose-500'">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-1">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Saldo / Orçamento</span>
+                        <button @click="editBudget()" class="text-slate-400 hover:text-slate-600 no-print" title="Definir Orçamento">
+                            <i data-lucide="edit-2" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="metrics.balance >= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'">
+                        <i data-lucide="wallet" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <span class="text-2xl sm:text-3xl font-extrabold" :class="metrics.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'" x-text="formatCurrency(metrics.balance)">R$ 0,00</span>
+                </div>
+                <p class="mt-1 text-xs text-slate-500 flex justify-between">
+                    <span>Orçamento Previsto:</span>
+                    <span class="font-semibold text-slate-700" x-text="formatCurrency(monthlyBudget)">R$ 0,00</span>
+                </p>
+            </div>
+        </section>
+
+        <!-- Visual Analytics Section (Charts) -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Category Distribution Chart -->
+            <div class="bg-white p-5 rounded-2xl card-shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+                        <i data-lucide="pie-chart" class="w-5 h-5 text-ravi-500"></i>
+                        <span>Gastos por Categoria</span>
+                    </h3>
+                </div>
+                <div class="relative h-64 flex items-center justify-center">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Comparison Chart (Ravi vs Family) -->
+            <div class="bg-white p-5 rounded-2xl card-shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+                        <i data-lucide="bar-chart-2" class="w-5 h-5 text-mint-600"></i>
+                        <span>Proporção: Ravi vs Família</span>
+                    </h3>
+                </div>
+                <div class="relative h-64 flex items-center justify-center">
+                    <canvas id="ratioChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cantinho do Ravi (Special Baby Features) -->
+        <section class="bg-gradient-to-r from-ravi-50/70 via-sky-50/50 to-emerald-50/70 rounded-3xl p-6 border border-ravi-100 card-shadow no-print">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 bg-ravi-500 text-white rounded-2xl shadow-sm">
+                        <i data-lucide="baby" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Cantinho do Ravi 👶🏻 (1 Aninho)</h2>
+                        <p class="text-xs text-slate-500">Métricas rápidas e itens essenciais de acompanhamento</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Essential Baby Cost Averages -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                    <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center space-x-2">
+                        <i data-lucide="activity" class="w-4 h-4 text-ravi-500"></i>
+                        <span>Média Mensal em Itens Contínuos</span>
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xl">🧷</span>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-700">Fralda & Higiene</p>
+                                    <p class="text-[10px] text-slate-500">Toalhinhas, pomadas, fraldas M/G</p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-bold text-ravi-600" x-text="formatCurrency(getCategoryTotal('Fraldas e Higiene'))">R$ 0,00</span>
+                        </div>
+
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xl">🍼</span>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-700">Alimentação & Fórmula</p>
+                                    <p class="text-[10px] text-slate-500">Leite, papinhas, frutas, compostos</p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-bold text-ravi-600" x-text="formatCurrency(getCategoryTotal('Alimentação/Leite'))">R$ 0,00</span>
+                        </div>
+
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xl">🩺</span>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-700">Saúde & Pediatra</p>
+                                    <p class="text-[10px] text-slate-500">Consultas, vacinas particulares, remédios</p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-bold text-ravi-600" x-text="formatCurrency(getCategoryTotal('Saúde e Pediatra'))">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Baby Wishlist / Next Needs -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-bold text-slate-700 flex items-center space-x-2">
+                                <i data-lucide="gift" class="w-4 h-4 text-pink-500"></i>
+                                <span>Lista de Desejos / Próximas Compras</span>
+                            </h4>
+                            <button @click="addWishItem()" class="text-xs font-bold text-ravi-600 hover:text-ravi-700">+ Adicionar</button>
+                        </div>
+                        <ul class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            <template x-for="(item, index) in wishlist" :key="index">
+                                <li class="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-xl">
+                                    <div class="flex items-center space-x-2">
+                                        <input type="checkbox" x-model="item.checked" @change="saveWishlist()" class="rounded text-ravi-500 focus:ring-ravi-400">
+                                        <span :class="item.checked ? 'line-through text-slate-400' : 'text-slate-700 font-medium'" x-text="item.name"></span>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-bold text-slate-600" x-text="formatCurrency(item.estimatedPrice)"></span>
+                                        <button @click="removeWishItem(index)" class="text-slate-400 hover:text-rose-500">
+                                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                        <span>Total estimado pendente:</span>
+                        <span class="font-bold text-slate-800" x-text="formatCurrency(getWishlistPendingTotal())">R$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transactions Section -->
+        <section class="bg-white rounded-2xl card-shadow overflow-hidden">
+            <!-- Header & Search Filters -->
+            <div class="p-5 border-b border-slate-100 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+                        <i data-lucide="list" class="w-5 h-5 text-ravi-500"></i>
+                        <span> Histórico de Lançamentos</span>
+                    </h2>
+                    <span class="text-xs text-slate-400" x-text="`${filteredTransactions.length} registros encontrados`"></span>
+                </div>
+
+                <!-- Search and Filtering Inputs -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 no-print">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+                        <input type="text" x-model="searchQuery" placeholder="Buscar por descrição..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ravi-400 text-slate-700">
+                    </div>
+
+                    <div>
+                        <select x-model="categoryFilter" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ravi-400 text-slate-700">
+                            <option value="ALL">Todas as Categorias</option>
+                            <optgroup label="Bebê / Ravi">
+                                <option value="Fraldas e Higiene">🧷 Fraldas e Higiene</option>
+                                <option value="Alimentação/Leite">🍼 Alimentação/Leite</option>
+                                <option value="Saúde e Pediatra">🩺 Saúde e Pediatra</option>
+                                <option value="Roupas e Acessórios">👕 Roupas e Acessórios</option>
+                                <option value="Brinquedos e Educação">🧸 Brinquedos e Educação</option>
+                                <option value="Outros Ravi">🎈 Outros Ravi</option>
+                            </optgroup>
+                            <optgroup label="Família">
+                                <option value="Supermercado">🛒 Supermercado</option>
+                                <option value="Moradia/Contas">🏠 Moradia/Contas</option>
+                                <option value="Transporte">🚗 Transporte</option>
+                                <option value="Lazer">🍿 Lazer</option>
+                                <option value="Saúde Família">💊 Saúde Família</option>
+                                <option value="Outros">📦 Outros</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div>
+                        <select x-model="paymentFilter" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ravi-400 text-slate-700">
+                            <option value="ALL">Todas as formas de pagamento</option>
+                            <option value="Pix">Pix</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                            <option value="Débito">Débito</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Desktop / Cards Mobile -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th class="p-4">Data</th>
+                            <th class="p-4">Descrição</th>
+                            <th class="p-4">Perfil</th>
+                            <th class="p-4">Categoria</th>
+                            <th class="p-4">Pagamento</th>
+                            <th class="p-4 text-right">Valor</th>
+                            <th class="p-4 text-center no-print">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        <template x-for="t in filteredTransactions" :key="t.id">
+                            <tr class="hover:bg-slate-50/80 transition duration-150">
+                                <td class="p-4 whitespace-nowrap text-xs text-slate-500" x-text="formatDate(t.date)"></td>
+                                <td class="p-4 font-semibold text-slate-800" x-text="t.description"></td>
+                                <td class="p-4 whitespace-nowrap">
+                                    <span :class="t.profile === 'RAVI' ? 'bg-ravi-100 text-ravi-700' : 'bg-emerald-100 text-emerald-700'" class="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center w-max space-x-1">
+                                        <span x-text="t.profile === 'RAVI' ? '👶🏻 Ravi' : '🏠 Família'"></span>
+                                    </span>
+                                </td>
+                                <td class="p-4 whitespace-nowrap text-xs text-slate-600">
+                                    <span class="inline-flex items-center space-x-1 bg-slate-100 px-2 py-0.5 rounded-lg" x-text="getCategoryLabel(t.category)"></span>
+                                </td>
+                                <td class="p-4 whitespace-nowrap text-xs text-slate-500" x-text="t.paymentMethod"></td>
+                                <td class="p-4 whitespace-nowrap text-right font-bold" :class="t.type === 'expense' ? 'text-slate-800' : 'text-emerald-600'" x-text="(t.type === 'expense' ? '- ' : '+ ') + formatCurrency(t.amount)"></td>
+                                <td class="p-4 whitespace-nowrap text-center no-print">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <button @click="editTransaction(t)" class="p-1 text-slate-400 hover:text-ravi-600 transition" title="Editar">
+                                            <i data-lucide="edit" class="w-4 h-4"></i>
+                                        </button>
+                                        <button @click="deleteTransaction(t.id)" class="p-1 text-slate-400 hover:text-rose-600 transition" title="Excluir">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template x-if="filteredTransactions.length === 0">
+                            <tr>
+                                <td colspan="7" class="p-8 text-center text-slate-400 text-sm">
+                                    Nenhum gasto ou lançamento encontrado para os filtros selecionados.
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Transaction Modal (Create/Edit) -->
+    <div x-show="showModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto no-print" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div x-show="showModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" @click="closeModal()"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div x-show="showModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" class="inline-block align-bottom bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-6">
+                
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <h3 class="text-lg font-extrabold text-slate-800" x-text="form.id ? 'Editar Lançamento' : 'Novo Lançamento'"></h3>
+                    <button @click="closeModal()" class="text-slate-400 hover:text-slate-600">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form @submit.prevent="saveTransaction()" class="mt-4 space-y-4">
+                    <!-- Profile Selection Switcher -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Atribuir Gastos A:</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" @click="form.profile = 'RAVI'; updateCategoriesForProfile()" :class="form.profile === 'RAVI' ? 'bg-ravi-50 border-ravi-400 text-ravi-700 ring-2 ring-ravi-400' : 'bg-slate-50 border-slate-200 text-slate-600'" class="p-3 rounded-2xl border text-center font-bold text-sm transition flex flex-col items-center justify-center space-y-1">
+                                <span class="text-xl">👶🏻</span>
+                                <span>Ravi (Bebê)</span>
+                            </button>
+                            <button type="button" @click="form.profile = 'FAMILY'; updateCategoriesForProfile()" :class="form.profile === 'FAMILY' ? 'bg-mint-50 border-mint-500 text-mint-700 ring-2 ring-mint-500' : 'bg-slate-50 border-slate-200 text-slate-600'" class="p-3 rounded-2xl border text-center font-bold text-sm transition flex flex-col items-center justify-center space-y-1">
+                                <span class="text-xl">🏠</span>
+                                <span>Família</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Descrição</label>
+                        <input type="text" x-model="form.description" required placeholder="Ex: Fralda Pampers M / Feira Semanal" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ravi-400">
+                    </div>
+
+                    <!-- Amount and Type -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Valor (R$)</label>
+                            <input type="number" step="0.01" min="0.01" x-model="form.amount" required placeholder="0,00" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ravi-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo</label>
+                            <select x-model="form.type" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ravi-400">
+                                <option value="expense">Despesa (-)</option>
+                                <option value="income">Receita (+)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Categoria</label>
+                        <select x-model="form.category" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ravi-400">
+                            <template x-if="form.profile === 'RAVI'">
+                                <g>
+                                    <option value="Fraldas e Higiene">🧷 Fraldas e Higiene</option>
+                                    <option value="Alimentação/Leite">🍼 Alimentação / Leite</option>
+                                    <option value="Saúde e Pediatra">🩺 Saúde e Pediatra</option>
+                                    <option value="Roupas e Acessórios">👕 Roupas e Acessórios</option>
+                                    <option value="Brinquedos e Educação">🧸 Brinquedos e Educação</option>
+                                    <option value="Outros Ravi">🎈 Outros Ravi</option>
+                                </g>
+                            </template>
+                            <template x-if="form.profile === 'FAMILY'">
+                                <g>
+                                    <option value="Supermercado">🛒 Supermercado</option>
+                                    <option value="Moradia/Contas">🏠 Moradia & Contas</option>
+                                    <option value="Transporte">🚗 Transporte</option>
+                                    <option value="Lazer">🍿 Lazer</option>
+                                    <option value="Saúde Família">💊 Saúde Família</option>
+                                    <option value="Outros">📦 Outros</option>
+                                </g>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Date & Payment Method -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Data</label>
+                            <input type="date" x-model="form.date" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ravi-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pagamento</label>
+                            <select x-model="form.paymentMethod" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ravi-400">
+                                <option value="Pix">Pix</option>
+                                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                <option value="Débito">Débito</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                        <button type="button" @click="closeModal()" class="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
+                        <button type="submit" class="px-5 py-2.5 bg-ravi-500 hover:bg-ravi-600 text-white text-xs font-bold rounded-xl shadow-md transition">Salvar Lançamento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // Service Worker Registration for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker do PWA registrado com sucesso!', reg))
+                    .catch(err => console.error('Erro ao registrar Service Worker:', err));
+            });
+        }
+
+        function appData() {
+            return {
+                showModal: false,
+                selectedMonth: new Date().toISOString().substring(0, 7),
+                profileFilter: 'ALL',
+                categoryFilter: 'ALL',
+                paymentFilter: 'ALL',
+                searchQuery: '',
+                monthlyBudget: 5000,
+                transactions: [],
+                wishlist: [],
+                categoryChart: null,
+                ratioChart: null,
+
+                form: {
+                    id: null,
+                    description: '',
+                    amount: '',
+                    type: 'expense',
+                    profile: 'RAVI',
+                    category: 'Fraldas e Higiene',
+                    date: new Date().toISOString().substring(0, 10),
+                    paymentMethod: 'Pix'
+                },
+
+                metrics: {
+                    totalExpenses: 0,
+                    raviExpenses: 0,
+                    familyExpenses: 0,
+                    balance: 0
+                },
+
+                initApp() {
+                    this.loadData();
+                    this.$nextTick(() => {
+                        if (window.lucide) {
+                            lucide.createIcons();
+                        }
+                        this.updateDashboard();
+                    });
+                },
+
+                loadData() {
+                    const savedTrans = localStorage.getItem('ravi_gastos_transactions');
+                    const savedBudget = localStorage.getItem('ravi_gastos_budget');
+                    const savedWish = localStorage.getItem('ravi_gastos_wishlist');
+
+                    if (savedBudget) this.monthlyBudget = parseFloat(savedBudget);
+
+                    if (savedWish) {
+                        this.wishlist = JSON.parse(savedWish);
+                    } else {
+                        this.wishlist = [
+                            { name: 'Cadeirinha de Carro 9-36kg', estimatedPrice: 650, checked: false },
+                            { name: 'Roupinhas de Frio Tam 2', estimatedPrice: 250, checked: false },
+                            { name: 'Sapatinho para Primeiros Passos', estimatedPrice: 120, checked: true }
+                        ];
+                    }
+
+                    if (savedTrans) {
+                        this.transactions = JSON.parse(savedTrans);
+                    } else {
+                        // Dados de exemplo caso esteja limpo
+                        const currMonth = new Date().toISOString().substring(0, 7);
+                        this.transactions = [
+                            { id: 1, description: 'Fraldas Pampers M Ajuste Total', amount: 129.90, type: 'expense', profile: 'RAVI', category: 'Fraldas e Higiene', date: `${currMonth}-02`, paymentMethod: 'Cartão de Crédito' },
+                            { id: 2, description: 'Consulta Pediatra de 1 Aninho', amount: 300.00, type: 'expense', profile: 'RAVI', category: 'Saúde e Pediatra', date: `${currMonth}-05`, paymentMethod: 'Pix' },
+                            { id: 3, description: 'Leite Aptamil Premium', amount: 89.90, type: 'expense', profile: 'RAVI', category: 'Alimentação/Leite', date: `${currMonth}-08`, paymentMethod: 'Pix' },
+                            { id: 4, description: 'Supermercado Mensal', amount: 1450.00, type: 'expense', profile: 'FAMILY', category: 'Supermercado', date: `${currMonth}-03`, paymentMethod: 'Cartão de Crédito' },
+                            { id: 5, description: 'Conta de Energia', amount: 280.50, type: 'expense', profile: 'FAMILY', category: 'Moradia/Contas', date: `${currMonth}-10`, paymentMethod: 'Pix' },
+                            { id: 6, description: 'Brinquedo Educativo Encaixe', amount: 79.90, type: 'expense', profile: 'RAVI', category: 'Brinquedos e Educação', date: `${currMonth}-12`, paymentMethod: 'Pix' },
+                            { id: 7, description: 'Combustível do Carro', amount: 250.00, type: 'expense', profile: 'FAMILY', category: 'Transporte', date: `${currMonth}-14`, paymentMethod: 'Débito' }
+                        ];
+                        this.saveTransactions();
+                    }
+                },
+
+                saveTransactions() {
+                    localStorage.setItem('ravi_gastos_transactions', JSON.stringify(this.transactions));
+                },
+
+                saveWishlist() {
+                    localStorage.setItem('ravi_gastos_wishlist', JSON.stringify(this.wishlist));
+                },
+
+                get filteredTransactions() {
+                    return this.transactions.filter(t => {
+                        const matchMonth = t.date.substring(0, 7) === this.selectedMonth;
+                        const matchProfile = this.profileFilter === 'ALL' || t.profile === this.profileFilter;
+                        const matchCategory = this.categoryFilter === 'ALL' || t.category === this.categoryFilter;
+                        const matchPayment = this.paymentFilter === 'ALL' || t.paymentMethod === this.paymentFilter;
+                        const matchSearch = t.description.toLowerCase().includes(this.searchQuery.toLowerCase());
+                        return matchMonth && matchProfile && matchCategory && matchPayment && matchSearch;
+                    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+                },
+
+                updateDashboard() {
+                    const currentMonthTrans = this.transactions.filter(t => t.date.substring(0, 7) === this.selectedMonth);
+
+                    let total = 0;
+                    let ravi = 0;
+                    let family = 0;
+
+                    currentMonthTrans.forEach(t => {
+                        if (t.type === 'expense') {
+                            total += parseFloat(t.amount);
+                            if (t.profile === 'RAVI') ravi += parseFloat(t.amount);
+                            if (t.profile === 'FAMILY') family += parseFloat(t.amount);
+                        }
+                    });
+
+                    this.metrics.totalExpenses = total;
+                    this.metrics.raviExpenses = ravi;
+                    this.metrics.familyExpenses = family;
+                    this.metrics.balance = this.monthlyBudget - total;
+
+                    this.renderCharts(currentMonthTrans);
+                },
+
+                getCategoryTotal(categoryName) {
+                    return this.transactions
+                        .filter(t => t.date.substring(0, 7) === this.selectedMonth && t.category === categoryName && t.type === 'expense')
+                        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+                },
+
+                initCharts() {
+                    const ctxCat = document.getElementById('categoryChart');
+                    if (ctxCat) {
+                        if (this.categoryChart) this.categoryChart.destroy();
+                        this.categoryChart = new Chart(ctxCat.getContext('2d'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: [],
+                                datasets: [{
+                                    data: [],
+                                    backgroundColor: ['#38bdf8', '#0284c7', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        position: 'bottom',
+                                        labels: { boxWidth: 12, font: { size: 11 } }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    const ctxRatio = document.getElementById('ratioChart');
+                    if (ctxRatio) {
+                        if (this.ratioChart) this.ratioChart.destroy();
+                        this.ratioChart = new Chart(ctxRatio.getContext('2d'), {
+                            type: 'bar',
+                            data: {
+                                labels: ['Ravi 👶🏻', 'Família 🏠'],
+                                datasets: [{
+                                    label: 'Gastos (R$)',
+                                    data: [0, 0],
+                                    backgroundColor: ['#38bdf8', '#22c55e'],
+                                    borderRadius: 8
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { grid: { display: false } },
+                                    y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
+                                }
+                            }
+                        });
+                    }
+                },
+
+                renderCharts(monthData) {
+                    if (!this.categoryChart || !this.ratioChart) {
+                        this.initCharts();
+                    }
+                    if (!this.categoryChart || !this.ratioChart) return;
+
+                    const categoryTotals = {};
+                    monthData.filter(t => t.type === 'expense').forEach(t => {
+                        categoryTotals[t.category] = (categoryTotals[t.category] || 0) + parseFloat(t.amount);
+                    });
+
+                    const labels = Object.keys(categoryTotals);
+                    const values = Object.values(categoryTotals);
+
+                    if (labels.length === 0) {
+                        this.categoryChart.data.labels = ['Sem registros'];
+                        this.categoryChart.data.datasets[0].data = [1];
+                        this.categoryChart.data.datasets[0].backgroundColor = ['#e2e8f0'];
+                    } else {
+                        this.categoryChart.data.labels = labels;
+                        this.categoryChart.data.datasets[0].data = values;
+                        this.categoryChart.data.datasets[0].backgroundColor = ['#38bdf8', '#0284c7', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b'];
+                    }
+                    this.categoryChart.update();
+
+                    this.ratioChart.data.datasets[0].data = [this.metrics.raviExpenses, this.metrics.familyExpenses];
+                    this.ratioChart.update();
+                },
+
+                openModal() {
+                    this.form = {
+                        id: null,
+                        description: '',
+                        amount: '',
+                        type: 'expense',
+                        profile: 'RAVI',
+                        category: 'Fraldas e Higiene',
+                        date: new Date().toISOString().substring(0, 10),
+                        paymentMethod: 'Pix'
+                    };
+                    this.showModal = true;
+                },
+
+                closeModal() {
+                    this.showModal = false;
+                },
+
+                updateCategoriesForProfile() {
+                    if (this.form.profile === 'RAVI') {
+                        this.form.category = 'Fraldas e Higiene';
+                    } else {
+                        this.form.category = 'Supermercado';
+                    }
+                },
+
+                saveTransaction() {
+                    if (this.form.id) {
+                        const index = this.transactions.findIndex(t => t.id === this.form.id);
+                        if (index !== -1) {
+                            this.transactions[index] = { ...this.form, amount: parseFloat(this.form.amount) };
+                        }
+                    } else {
+                        this.transactions.push({
+                            ...this.form,
+                            id: Date.now(),
+                            amount: parseFloat(this.form.amount)
+                        });
+                    }
+
+                    this.saveTransactions();
+                    this.updateDashboard();
+                    this.closeModal();
+                },
+
+                editTransaction(t) {
+                    this.form = { ...t };
+                    this.showModal = true;
+                },
+
+                deleteTransaction(id) {
+                    if (confirm('Deseja realmente remover este lançamento?')) {
+                        this.transactions = this.transactions.filter(t => t.id !== id);
+                        this.saveTransactions();
+                        this.updateDashboard();
+                    }
+                },
+
+                editBudget() {
+                    const newBudget = prompt('Informe o orçamento mensal da família (R$):', this.monthlyBudget);
+                    if (newBudget && !isNaN(newBudget)) {
+                        this.monthlyBudget = parseFloat(newBudget);
+                        localStorage.setItem('ravi_gastos_budget', this.monthlyBudget);
+                        this.updateDashboard();
+                    }
+                },
+
+                addWishItem() {
+                    const name = prompt('Item desejado para o Ravi:');
+                    if (!name) return;
+                    const price = prompt('Valor estimado (R$):', '0');
+                    this.wishlist.push({
+                        name: name,
+                        estimatedPrice: parseFloat(price) || 0,
+                        checked: false
+                    });
+                    this.saveWishlist();
+                },
+
+                removeWishItem(index) {
+                    this.wishlist.splice(index, 1);
+                    this.saveWishlist();
+                },
+
+                getWishlistPendingTotal() {
+                    return this.wishlist.filter(i => !i.checked).reduce((sum, i) => sum + i.estimatedPrice, 0);
+                },
+
+                formatCurrency(value) {
+                    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+                },
+
+                formatDate(dateStr) {
+                    if (!dateStr) return '';
+                    const parts = dateStr.split('-');
+                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                },
+
+                getCategoryLabel(category) {
+                    const icons = {
+                        'Fraldas e Higiene': '🧷 Fraldas e Higiene',
+                        'Alimentação/Leite': '🍼 Alimentação/Leite',
+                        'Saúde e Pediatra': '🩺 Saúde e Pediatra',
+                        'Roupas e Acessórios': '👕 Roupas e Acessórios',
+                        'Brinquedos e Educação': '🧸 Brinquedos',
+                        'Outros Ravi': '🎈 Outros Ravi',
+                        'Supermercado': '🛒 Supermercado',
+                        'Moradia/Contas': '🏠 Moradia/Contas',
+                        'Transporte': '🚗 Transporte',
+                        'Lazer': '🍿 Lazer',
+                        'Saúde Família': '💊 Saúde Família',
+                        'Outros': '📦 Outros'
+                    };
+                    return icons[category] || category;
+                },
+
+                exportCSV() {
+                    let csv = 'Data;Descricao;Perfil;Categoria;Pagamento;Tipo;Valor\n';
+                    this.transactions.forEach(t => {
+                        csv += `${t.date};"${t.description}";${t.profile};${t.category};${t.paymentMethod};${t.type};${t.amount}\n`;
+                    });
+
+                    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `gastos_do_ravi_${this.selectedMonth}.csv`;
+                    link.click();
+                },
+
+                resetData() {
+                    if (confirm('Atenção: Isso redefinirá todos os lançamentos para o estado inicial de exemplo. Deseja continuar?')) {
+                        localStorage.removeItem('ravi_gastos_transactions');
+                        localStorage.removeItem('ravi_gastos_budget');
+                        localStorage.removeItem('ravi_gastos_wishlist');
+                        location.reload();
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
